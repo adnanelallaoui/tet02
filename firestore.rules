@@ -1,0 +1,93 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['email', 'uid', 'createdAt', 'config']) && 
+             data.keys().size() == 4 &&
+             data.email is string && data.email.size() <= 200 &&
+             data.uid is string && data.uid == request.auth.uid &&
+             (data.createdAt is string || data.createdAt is int || data.createdAt is float) &&
+             data.config is map;
+    }
+
+    function isValidSmtpNode(data) {
+      return data.keys().hasAll(['host', 'port', 'user', 'pass', 'ownerId', 'createdAt']) &&
+             data.keys().size() == 6 &&
+             data.host is string && data.host.size() <= 256 &&
+             data.port is int && data.port >= 1 && data.port <= 65535 &&
+             data.user is string && data.user.size() <= 128 &&
+             data.pass is string && data.pass.size() <= 256 &&
+             data.ownerId is string && data.ownerId == request.auth.uid &&
+             (data.createdAt is string || data.createdAt is int || data.createdAt is float);
+    }
+
+    function isValidEmailJob(data) {
+      return data.keys().hasAll(['id', 'status', 'total', 'sent', 'failed', 'currentIndex', 'ownerId', 'createdAt', 'logs']) &&
+             data.id is string && data.id.size() <= 128 &&
+             data.status is string && (data.status == 'idle' || data.status == 'running' || data.status == 'paused' || data.status == 'completed' || data.status == 'failed') &&
+             data.total is int && data.total >= 0 &&
+             data.sent is int && data.sent >= 0 &&
+             data.failed is int && data.failed >= 0 &&
+             data.currentIndex is int && data.currentIndex >= 0 &&
+             data.ownerId is string && data.ownerId == request.auth.uid &&
+             data.logs is list;
+    }
+
+    // Collection routing
+    match /users/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && request.auth.uid == userId && isValidUserProfile(incoming());
+      allow update: if request.auth != null && request.auth.uid == userId && isValidUserProfile(incoming()) && 
+                    incoming().email == existing().email && 
+                    incoming().uid == existing().uid &&
+                    incoming().createdAt == existing().createdAt;
+      allow delete: if request.auth != null && request.auth.uid == userId;
+
+      match /smtp_nodes/{nodeId} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow create: if request.auth != null && request.auth.uid == userId && isValidId(nodeId) && isValidSmtpNode(incoming());
+        allow update: if request.auth != null && request.auth.uid == userId && isValidId(nodeId) && isValidSmtpNode(incoming()) &&
+                      incoming().ownerId == existing().ownerId &&
+                      incoming().createdAt == existing().createdAt;
+        allow delete: if request.auth != null && request.auth.uid == userId && isValidId(nodeId);
+      }
+
+      match /jobs/{jobId} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow create: if request.auth != null && request.auth.uid == userId && isValidId(jobId) && isValidEmailJob(incoming());
+        allow update: if request.auth != null && request.auth.uid == userId && isValidId(jobId) && isValidEmailJob(incoming()) &&
+                      incoming().ownerId == existing().ownerId &&
+                      incoming().createdAt == existing().createdAt &&
+                      (existing().status != 'completed' || incoming().status == 'completed');
+        allow delete: if request.auth != null && request.auth.uid == userId && isValidId(jobId);
+      }
+    }
+  }
+}

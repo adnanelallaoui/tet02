@@ -1,0 +1,8 @@
+{
+  "name": "Remix: Genius Emailer",
+  "description": "High-performance bulk email dashboard with SMTP rotation, smart templates, and real-time delivery tracking.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

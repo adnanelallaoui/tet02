@@ -1,0 +1,115 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile with setup metadata",
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        },
+        "uid": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string"
+        }
+      },
+      "required": ["email", "uid", "createdAt"]
+    },
+    "SmtpNode": {
+      "title": "SmtpNode",
+      "description": "Configured SMTP relay node credentials",
+      "type": "object",
+      "properties": {
+        "host": {
+          "type": "string"
+        },
+        "port": {
+          "type": "integer"
+        },
+        "user": {
+          "type": "string"
+        },
+        "pass": {
+          "type": "string"
+        },
+        "ownerId": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string"
+        }
+      },
+      "required": ["host", "port", "user", "pass", "ownerId", "createdAt"]
+    },
+    "EmailJob": {
+      "title": "EmailJob",
+      "description": "Mass sending campaign job execution state",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["idle", "running", "paused", "completed", "failed"]
+        },
+        "total": {
+          "type": "integer"
+        },
+        "sent": {
+          "type": "integer"
+        },
+        "failed": {
+          "type": "integer"
+        },
+        "currentIndex": {
+          "type": "integer"
+        },
+        "currentSmtp": {
+          "type": "string"
+        },
+        "currentLink": {
+          "type": "string"
+        },
+        "currentImage": {
+          "type": "string"
+        },
+        "startTime": {
+          "type": "integer"
+        },
+        "endTime": {
+          "type": "integer"
+        },
+        "logs": {
+          "type": "array"
+        },
+        "ownerId": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "config": {
+          "type": "object"
+        }
+      },
+      "required": ["id", "status", "total", "sent", "failed", "currentIndex", "ownerId", "createdAt", "logs"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Stores basic user registration details"
+    },
+    "/users/{userId}/smtp_nodes/{nodeId}": {
+      "schema": "SmtpNode",
+      "description": "Stores user-specific SMTP relay servers with secrets"
+    },
+    "/users/{userId}/jobs/{jobId}": {
+      "schema": "EmailJob",
+      "description": "Stores user mass email job progress metrics and details"
+    }
+  }
+}
